@@ -1,0 +1,124 @@
+Hasher (hash algorithm) Requirements:
+
+    Has nested type result_type (std::size_t when used with std::unordered_*).
+
+    Constructible (default and/or seeded) // initialization
+        Effects:  Initializes the state of the Hasher.  After default
+                  constructing two Hasher's, h1 and h2, h1 and h2 shall
+                  have the same state.  If two Hasher's h1 and h2 are
+                  constructed with the same seeds, h1 and h2 shall have
+                  the same state.
+
+    Hasher(Hasher const& h)
+        Effects:  After construction *this and h have the same state.  However
+                  subsequent updates to *this will not affect the state of h,
+                  and vice-versa.
+
+    Hasher& operator=(Hasher const& h)
+        Effects:  After the assignment, *this and h have the same state.
+        Returns:  *this.  However subsequent updates to *this will not affect
+                  the state of h, and vice-versa.
+
+    void operator()(void const* key, std::size_t len)  ;  // update operation
+        Requires:  if len > 0, key points to len contiguous bytes to
+                   be consumed by the Hasher.  The finalize operation
+                   has not been called on this object since construction,
+                   or since *this was assigned to.
+
+        Effects:  Updates the state of the hasher using the len bytes
+                  referred to by {key, len} pair.
+
+                  If for two keys {k1, len1} and {k2, len2}, both len1 and
+                  len2 == 0, then the two keys are considered equivalent.  If
+                  len1 != len2, the two keys are considered not equivalent. 
+                  If len1 == len2 and len1 > 0, and if memcmp(k1, k2, len1)
+                  == 0, the two keys are equivalent, else they are not
+                  equivalent. If two instances of Hasher (e.g. h1 and h2)
+                  have the same state prior to an update operation, and given
+                  two equivalent keys {k1, len} and {k2, len}, then after
+                  h1(k1, len) and h2(k2, len), then h1 and h2 shall have
+                  the same updated state.
+
+                  The Hasher does not access this memory range after the
+                  update operation returns. [Note: If len == 0, then key may
+                  be nullptr.  If len == 0, it is unspecified if the state of
+                  the Hasher is changed during the update. -- end note]
+
+    explicit operator result_type();                      // finalize operation
+        Requires:  This operation has not been called on this object
+                   since construction or since *this was assigned to.
+        Effects:  Converts the state of the Hasher to a result_type.  Two
+                  instances of the same type of Hasher, with the same state,
+                  shall return the same value.  It is unspecified if this
+                  operation changes the state of the Hasher.
+        Returns:  The converted state.
+
+Hash_functor<Hasher> Requirements:
+
+    using result_type = typename Hasher::result_type;
+    
+    Constructible (default and/or seeded) // initialization
+        Effects:  Initializes the state of the Hash_functor.  Different default
+                  constructions, and different seeded constructions (even
+                  with the same seeds), are not required to initialize the
+                  Hash_functor to the same state.
+
+    Hash_functor(Hash_functor const& hf)
+        Effects:  After construction *this and hf have the same state.
+
+    Hash_functor& operator=(Hash_functor const& hf)
+        Effects:  After the assignment, *this and hf have the same state.
+        Returns:  *this.
+
+    template <class T>
+    result_type
+    operator()(T const& t) const;
+        Requires: Hasher shall be constructible as specified by a concrete
+                  Hash_functor type.
+        Effects:  Constructs a Hasher h with automatic storage.  Each concrete
+                  Hash_functor type shall specifiy how h is constructed. 
+                  However h shall be constructed to the same state for every
+                  invocation of (*this)(t).  Updates the state of the Hasher
+                  in an unspecified manner, except that there shall be
+                  exactly one call to:
+
+                       using std::hash_append;
+                       hash_append(h, t);
+
+                  at some time during the update operation.  Furthermore,
+                  subsequent calls shall update the the local h with exactly
+                  the same state every time, except as changed by different
+                  values for t, unless there is an intervening assignment to
+                  *this between calls to this operator.
+
+        Returns:  static_cast<result_type>(h).
+                  [Note:  For the same value of t, the same value is returned
+                  on subsequent calls unless there is an intervening
+                  assignment to *this between calls to this operator.  -- end
+                  note]
+
+template <class Hasher>
+void
+hash_append(Hasher& h, X const& x);
+
+    Requires:  hash_append shall be declared in the same namespace in which X
+               is declared.  Hasher shall meet the Hasher requirements.  If for
+               two values of X, x1 and x2, and given two values of type Hasher,
+               h1 and h2, where h1 and h2 have the same state, then if x1 == x2
+               then after hash_append(h1, x1) and hash_append(h2, x2), h1 and
+               h2 shall have the same updated state.
+
+    Effects:  Updates the state of h with the value of x.  Different values of
+              x should update h to different states.  This may be done by
+              calling h(void*, size_t), and / or by calling hash_append
+              (unqualified) on h and sub-objects of x, or by calling
+              hash_append on h and some value computed from the value of x.
+
+is_contiguously_hashable<T>:
+
+A type T is contiguously hashable if for all combinations of two values of a
+type, say x and y, if x == y, then it must also be true that
+memcmp(addressof(x), addressof(y), sizeof(T)) == 0.
+
+template <class T> struct is_contiguously_hashable<T> derives from true_type
+if T is contiguously hashable, else it derives from false_type.
