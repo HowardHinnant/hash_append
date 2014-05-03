@@ -22,6 +22,7 @@
 #include <vector>
 #include <unordered_map>
 #include <unordered_set>
+#include <system_error>
 
 #include "siphash.h"  // the current default hasher
 
@@ -376,6 +377,16 @@ hash_append (Hasher& h, T0 const& t0, T1 const& t1, T const& ...t) noexcept
 {
     hash_append(h, t0);
     hash_append(h, t1, t...);
+}
+
+// error_code
+
+template <class HashAlgorithm>
+inline
+void
+hash_append(HashAlgorithm& h, std::error_code const& ec)
+{
+    hash_append(h, ec.value(), &ec.category());
 }
 
 // uhash

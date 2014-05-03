@@ -42,7 +42,7 @@ main()
         for (auto const& i : x)
             hashes.push_back(std::hash<mine::X>{}(i));
         auto t1 = std::chrono::high_resolution_clock::now();
-        std::cout << "std::hash<X>> " << '\n' << std::hex;
+        std::cout << "std::hash<X> " << '\n' << std::hex;
         std::cout << secs(t1-t0).count() << " s\n";
         std::cout << test1(hashes) << '\n';
         std::cout << test2(hashes) << '\n';

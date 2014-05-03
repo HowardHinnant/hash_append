@@ -30,7 +30,7 @@ init_seeds()
 
 }   // unnamed
 
-std::tuple<std::uint64_t, std::uint64_t>&
+std::tuple<std::uint64_t, std::uint64_t>
 get_process_seed()
 {
     static std::tuple<std::uint64_t, std::uint64_t> seeds = init_seeds();

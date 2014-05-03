@@ -104,14 +104,10 @@ struct hash<mine::X>
     operator()(mine::X const& x) const noexcept
     {
         using namespace n3876;
-        size_t h =      hash<tuple_element<0, decltype(x.date_)>::type>{}(get<0>(x.date_));
-        hash_combine(h, hash<tuple_element<1, decltype(x.date_)>::type>{}(get<1>(x.date_))
-                      , hash<tuple_element<2, decltype(x.date_)>::type>{}(get<2>(x.date_)));
+        size_t h = hash<tuple_element<0, decltype(x.date_)>::type>{}(get<0>(x.date_));
+        hash_combine(h, get<1>(x.date_), get<2>(x.date_));
         for (auto const& p : x.data_)
-        {
-            hash_combine(h, hash<decltype(x.data_)::value_type::first_type>{} (p.first));
-            hash_combine(h, hash<decltype(x.data_)::value_type::second_type>{} (p.second));
-        }
+            hash_combine(h, p.first, p.second);
         return h;
     }
 };

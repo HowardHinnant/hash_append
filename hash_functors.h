@@ -96,7 +96,7 @@ randomly_seeded_hash<Hasher>::rand_s{std::random_device{}()};
 
 // A hasher that can be seeded, or defaults to a random seed set per process
 
-std::tuple<std::uint64_t, std::uint64_t>&
+std::tuple<std::uint64_t, std::uint64_t>
 get_process_seed();
 
 template <class Hasher = acme::siphash>
