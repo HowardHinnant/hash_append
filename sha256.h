@@ -1,4 +1,4 @@
-//-------------------------------- fnv1a.h -------------------------------------
+//------------------------------- sha256.h -------------------------------------
 // 
 // This software is in the public domain.  The only restriction on its use is
 // that no one can remove it from the public domain by claiming ownership of it,
@@ -9,41 +9,47 @@
 // 
 //------------------------------------------------------------------------------
 
-#ifndef FNV1A_H
-#define FNV1A_H
+#ifndef SHA256_H
+#define SHA256_H
 
 #include "endian.h"
+#include <array>
 #include <cstddef>
+#include <cstdint>
+#include "sha2.h"
 
 // namespace acme is used to demonstrate example code.  It is not proposed.
 
 namespace acme
 {
 
-class fnv1a
+class sha256
 {
-    std::size_t state_ = 14695981039346656037u;
-public:
+    SHA256_CTX state_;
+public: 
+    static constexpr xstd::endian endian = xstd::endian::big;
+    using result_type = std::array<std::uint8_t, SHA256_DIGEST_LENGTH>;
 
-    static constexpr xstd::endian endian = xstd::endian::native;
-    using result_type = std::size_t;
+    sha256() noexcept
+    {
+        SHA256_Init(&state_);
+    }
 
     void
     operator()(void const* key, std::size_t len) noexcept
     {
-        unsigned char const* p = static_cast<unsigned char const*>(key);
-        unsigned char const* const e = p + len;
-        for (; p < e; ++p)
-            state_ = (state_ ^ *p) * 1099511628211u;
+        SHA256_Update(&state_, static_cast<uint8_t const*>(key), len);
     }
 
     explicit
-    operator std::size_t() noexcept
+    operator result_type() noexcept
     {
-        return state_;
+        result_type r;
+        SHA256_Final(r.data(), &state_);
+        return r;
     }
 };
 
 }  // acme
 
-#endif  // FNV1A_H
+#endif  // SHA256_H

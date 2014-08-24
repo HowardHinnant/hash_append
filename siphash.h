@@ -27,6 +27,7 @@
 #ifndef SIPHASH_H
 #define SIPHASH_H
 
+#include "endian.h"
 #include <cstddef>
 #include <cstdint>
 
@@ -45,7 +46,7 @@ class siphash
     unsigned bufsize_ = 0;
     unsigned total_length_ = 0;
 public:
-
+    static constexpr xstd::endian endian = xstd::endian::native;
     using result_type = std::size_t;
 
     siphash() = default;

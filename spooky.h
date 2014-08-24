@@ -12,7 +12,9 @@
 #ifndef SPOOKY_H
 #define SPOOKY_H
 
+#include "endian.h"
 #include <cstddef>
+#include <cstdint>
 #include "SpookyV2.h"
 
 // namespace acme is used to demonstrate example code.  It is not proposed.
@@ -24,6 +26,7 @@ class spooky
 {
     SpookyHash state_;
 public: 
+    static constexpr xstd::endian endian = xstd::endian::native;
     using result_type = std::size_t;
 
     spooky(std::size_t seed1 = 1, std::size_t seed2 = 2) noexcept
