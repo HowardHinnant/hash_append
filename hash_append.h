@@ -86,7 +86,9 @@ reverse_bytes(T& t)
         std::swap(bytes[i], bytes[sizeof(T)-1-i]);
     t = scalar;
 #else
-    unsigned char* bytes = static_cast<unsigned char*>(std::memmove(std::addressof(t), std::addressof(t), sizeof(T)));
+    unsigned char* bytes = static_cast<unsigned char*>(std::memmove(std::addressof(t),
+                                                                    std::addressof(t),
+                                                                    sizeof(T)));
     for (unsigned i = 0; i < sizeof(T)/2; ++i)
         std::swap(bytes[i], bytes[sizeof(T)-1-i]);
 #endif
