@@ -1,0 +1,166 @@
+Review of interfaces:
+
+Z.  Programmers who want to hash things so they can put them into unordered
+    containers:
+
+        std::unordered_set<X, std::uhash<GoodHashAlgorithm>> set;
+
+Y.  Programmers who want to seed their hash algorithms to harden them against
+    attacks.
+
+        std::unordered_set<X, randomly_seeded_hash<siphash>> set;
+        std::unordered_set<X, randomly_seeded_hash<siphash>> set{nb, randomly_seeded_hash<siphash>{seed}};
+
+A.  Authors of hashable types X - The author of hash_append(h, const X&).
+
+    For each type X a programmer authors, and wants to hash, either:
+
+    1.
+
+        namespace std {
+        template <> struct is_uniquely_represented<X>
+            : public true_type {};  // or whatever conditional
+        }
+
+    and/or 2.
+
+        template <class HashAlgorithm>
+        void
+        hash_append(HashAlgorithm& h, const X& x)
+        {
+            using std::hash_append;
+            hash_append(h, x.m1, x.m2, x.m3);
+        }
+
+B.  Authors of hash functors such as randomly_seeded_hash.
+
+    // A hasher that can be seeded, or defaults to a random seed
+    template <class Hasher = acme::siphash>
+    class randomly_seeded_hash
+    {
+    private:
+        static std::mutex mut_s;
+        static std::mt19937_64 rand_s;
+
+        std::size_t seed0_;
+        std::size_t seed1_;
+    public:
+        using result_type = typename Hasher::result_type;
+
+        randomly_seeded_hash()
+        {
+            std::lock_guard<std::mutex> _(mut_s);
+            seed0_ = rand_s();
+            seed1_ = rand_s();
+        }
+
+        explicit randomly_seeded_hash(std::size_t seed0, std::size_t seed1 = 0)
+            : seed0_(seed0)
+            , seed1_(seed1)
+        {}
+
+        template <class T>
+        result_type
+        operator()(T const& t) const noexcept
+        {
+            Hasher h(seed0_, seed1_);
+            using std::hash_append;
+            hash_append(h, t);
+            return static_cast<result_type>(h);
+        }
+    };
+
+C.  Authors of hash algorithm adaptors.
+
+    class MyHashAlgorithm
+    {
+    public:
+        static constexpr std::endian endian = std::endian::native;
+
+        using result_type = std::size_t;
+
+        MyHashAlgorithm() = default;
+        explicit MyHashAlgorithm(std::uint64_t k0, std::uint64_t k1 = 0) noexcept;
+
+        void
+        operator()(void const* key, std::size_t len) noexcept;
+
+        explicit
+        operator std::size_t() noexcept;
+    };
+
+D.  The committee.  They will reject an overly complicated solution (and have done so in the past).
+    
+    Everything the vendors have to implement, plus concepts for HashAlgorithm,
+    is_uniquely_represented, Hasher (i.e. for uhash replacements).
+
+E.  The vendors.  They will reject an overly complicated solution (and have done so in the past).
+
+    namespace std
+    {
+
+    enum class endian
+    {
+        native = <equal to little or big>,
+        little = <not equal to big>,
+        big    = <not equal to little>
+    };
+
+    template <class T> struct is_uniquely_represented;
+        Specializations for all hashable scalars, pair, tuple, array, c-arrays
+        and cv-qualified types.
+
+    template <class T, class HashAlgorithm>
+    struct is_contiguously_hashable
+        : public integral_constant<bool, is_uniquely_represented<T>{} &&
+                                         (sizeof(T) == 1 ||
+                                          HashAlgorithm::endian == endian::native)>
+    {};
+
+    template <class T, std::size_t N, class HashAlgorithm>
+    struct is_contiguously_hashable<T[N], HashAlgorithm>
+        : public std::integral_constant<bool, is_uniquely_represented<T>{} &&
+                                          (sizeof(T) == 1 ||
+                                           HashAlgorithm::endian == endian::native)>
+    {};
+
+    template <class Hasher, class T>
+    inline
+    std::enable_if_t
+    <
+        is_contiguously_hashable<T, Hasher>{}
+    >
+    hash_append(Hasher& h, T const& t) noexcept
+    {
+        h(std::addressof(t), sizeof(t));
+    }
+
+    template <class HashAlgorithm, class T>>
+    void
+    hash_append(HashAlgorithm& h, const T& t);
+        for all hashable scalar types for which
+        is_contiguously_hashable<T, HashAlgorithm>{} is false.
+        Also for nullptr_t, c-arrays, type_info, error_code, pair, tuple,
+        bitset, unique_ptr, shared_ptr, duration, time_point, type_index,
+        basic_string, array, deque, forward_list, vector, vector<bool>, map,
+        multimap, set, multiset, complex, valarray, thread::id, and a variadic
+        version.
+
+    template <class HashAlgorithm = <unspecified>>
+    struct uhash
+    {
+        using result_type = typename HashAlgorithm::result_type;
+
+        template <class T>
+        result_type
+        operator()(T const& t) const noexcept
+        {
+            HashAlgorithm h;
+            hash_append(h, t);
+            return static_cast<result_type>(h);
+        }
+    };
+
+    The unspecified default HashAlgorithm.
+
+    }  // std

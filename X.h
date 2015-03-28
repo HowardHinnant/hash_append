@@ -20,7 +20,7 @@
 #include "hash_append.h"
 #include "n3876.h"
 
-#include "../llvm/include/llvm/ADT/Hashing.h"
+// #include "../llvm/include/llvm/ADT/Hashing.h"
 
 namespace mine
 {
@@ -47,19 +47,19 @@ public:
 
     friend struct std::hash<X>;
 
-    friend
-    llvm::hash_code
-    hash_value(X const& x)
-    {
-        using llvm::hash_value;
-        return llvm::hash_combine
-            (
-                hash_value(std::get<0>(x.date_)),
-                hash_value(std::get<1>(x.date_)),
-                hash_value(std::get<2>(x.date_)),
-                llvm::hash_combine_range(x.data_.begin(), x.data_.end())
-            );
-    }
+//     friend
+//     llvm::hash_code
+//     hash_value(X const& x)
+//     {
+//         using llvm::hash_value;
+//         return llvm::hash_combine
+//             (
+//                 hash_value(std::get<0>(x.date_)),
+//                 hash_value(std::get<1>(x.date_)),
+//                 hash_value(std::get<2>(x.date_)),
+//                 llvm::hash_combine_range(x.data_.begin(), x.data_.end())
+//             );
+//     }
 
     template <class Hasher>
     friend
@@ -67,7 +67,7 @@ public:
     hash_append(Hasher& h, X const& x)
     {
         using xstd::hash_append;
-        hash_append(h, x.date_, x.data_);
+        hash_append(h, x.date_);
     }
 };
 
