@@ -75,31 +75,11 @@ inline
 void
 reverse_bytes(T& t)
 {
-#if 0
-    union
-    {
-        unsigned char bytes[sizeof(T)];
-        T scalar;
-    };
-    scalar = t;
-    for (unsigned i = 0; i < sizeof(T)/2; ++i)
-        std::swap(bytes[i], bytes[sizeof(T)-1-i]);
-    t = scalar;
-#else
     unsigned char* bytes = static_cast<unsigned char*>(std::memmove(std::addressof(t),
                                                                     std::addressof(t),
                                                                     sizeof(T)));
     for (unsigned i = 0; i < sizeof(T)/2; ++i)
         std::swap(bytes[i], bytes[sizeof(T)-1-i]);
-#endif
-}
-
-template <class T>
-constexpr
-inline
-void
-maybe_reverse_bytes(T& t, std::true_type)
-{
 }
 
 template <class T>
@@ -107,6 +87,14 @@ constexpr
 inline
 void
 maybe_reverse_bytes(T& t, std::false_type)
+{
+}
+
+template <class T>
+constexpr
+inline
+void
+maybe_reverse_bytes(T& t, std::true_type)
 {
     reverse_bytes(t);
 }
@@ -118,7 +106,7 @@ void
 maybe_reverse_bytes(T& t, Hasher&)
 {
     maybe_reverse_bytes(t, std::integral_constant<bool,
-                                           Hasher::endian == endian::native>{});
+                                           Hasher::endian != endian::native>{});
 }
 
 }  // detail
@@ -152,20 +140,6 @@ struct is_uniquely_represented<T const volatile>
     : public is_uniquely_represented<T>
 {};
 
-template <class T, class HashAlgorithm>
-struct is_contiguously_hashable
-    : public std::integral_constant<bool, is_uniquely_represented<T>{} &&
-                                      (sizeof(T) == 1 ||
-                                       HashAlgorithm::endian == endian::native)>
-{};
-
-template <class T, std::size_t N, class HashAlgorithm>
-struct is_contiguously_hashable<T[N], HashAlgorithm>
-    : public std::integral_constant<bool, is_uniquely_represented<T>{} &&
-                                      (sizeof(T) == 1 ||
-                                       HashAlgorithm::endian == endian::native)>
-{};
-
 // is_uniquely_represented<std::pair<T, U>>
 
 template <class T, class U>
@@ -190,7 +164,7 @@ struct is_uniquely_represented<std::tuple<T...>>
 
 template <class T, std::size_t N>
 struct is_uniquely_represented<T[N]>
-    : public std::integral_constant<bool, is_uniquely_represented<T>{}>
+    : public is_uniquely_represented<T>
 {
 };
 
@@ -202,6 +176,20 @@ struct is_uniquely_represented<std::array<T, N>>
                                           sizeof(T)*N == sizeof(std::array<T, N>)>
 {
 };
+
+template <class T, class HashAlgorithm>
+struct is_contiguously_hashable
+    : public std::integral_constant<bool, is_uniquely_represented<T>{} &&
+                                      (sizeof(T) == 1 ||
+                                       HashAlgorithm::endian == endian::native)>
+{};
+
+template <class T, std::size_t N, class HashAlgorithm>
+struct is_contiguously_hashable<T[N], HashAlgorithm>
+    : public std::integral_constant<bool, is_uniquely_represented<T[N]>{} &&
+                                      (sizeof(T) == 1 ||
+                                       HashAlgorithm::endian == endian::native)>
+{};
 
 // template <class Hasher, class T>
 // void
