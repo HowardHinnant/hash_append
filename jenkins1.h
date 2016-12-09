@@ -12,6 +12,7 @@
 #ifndef JENKINS1_H
 #define JENKINS1_H
 
+#include "endian.h"
 #include <cstddef>
 
 // namespace acme is used to demonstrate example code.  It is not proposed.
@@ -24,6 +25,7 @@ class jenkins1
     std::size_t state_ = 0;
 
 public:
+    static constexpr xstd::endian endian = xstd::endian::native;
     using result_type = std::size_t;
 
     void
