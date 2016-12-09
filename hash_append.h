@@ -14,6 +14,7 @@
 
 #include "endian.h"
 #include <cstddef>
+#include <cstring>      // memmove
 #include <type_traits>
 #include <utility>
 #include <tuple>
@@ -86,7 +87,7 @@ template <class T>
 constexpr
 inline
 void
-maybe_reverse_bytes(T& t, std::false_type)
+maybe_reverse_bytes(T&, std::false_type)
 {
 }
 
